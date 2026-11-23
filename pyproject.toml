@@ -1,0 +1,11 @@
+[project]
+name = "mp226"
+version = "0.1.0"
+description = "MP226 Housing Society Water Demand (Guwahati) - MLOps mini project"
+requires-python = ">=3.12"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]

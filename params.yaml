@@ -1,0 +1,44 @@
+# Settings for the MP226 water-demand pipeline.
+# Change values here, never in the code.
+
+data:
+  train: data/raw/train.csv
+  later: data/raw/later.csv
+  holdout: data/raw/holdout_features.csv
+
+columns:
+  target: litres_per_day
+  features:
+    - flats_occupied
+    - temp_c
+    - garden_area_m2
+    - tank_level_morning_pct
+    - leak_complaints
+    - supply_hours
+    - supply_source
+    - tower
+  numeric:
+    - flats_occupied
+    - temp_c
+    - garden_area_m2
+    - tank_level_morning_pct
+    - leak_complaints
+    - supply_hours
+  text:
+    - supply_source
+    - tower
+  group: tower
+
+seed: 42
+
+drift:
+  bins: 10
+
+retrain:
+  later_train_fraction: 0.7      # first 70% of later.csv (by date) goes into v2
+  promotion_improvement: 0.15    # promote v2 only if its MAE is >= 15% lower
+
+mlflow:
+  tracking_uri: sqlite:///mlflow.db
+  experiment_name: mp226-water-demand
+  registered_model_name: mp226-water-demand
