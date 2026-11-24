@@ -33,7 +33,7 @@ tracking:
   experiment_name: mp226-water-demand
   best_run_id: 0f951cbcbdd74e00b7f6834ab3f50006
   registered_model_name: mp226-water-demand
-  champion_version: 1
+  champion_version: 2
 monitoring:
   psi:
     flats_occupied: 0.0357
@@ -48,6 +48,6 @@ monitoring:
     Tower B: 2699.6
     Tower C: 2497.35
   worst_served_group: Tower A
-  mae_v1_on_check: null
-  mae_v2_on_check: null
-  decision: null
+  mae_v1_on_check: 7679.11
+  mae_v2_on_check: 5776.65
+  decision: promote
