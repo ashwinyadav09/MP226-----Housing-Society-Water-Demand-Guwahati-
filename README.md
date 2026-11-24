@@ -53,12 +53,16 @@ All cleaning transformations are implemented in `src/mp226/clean.py` based on em
 |---|---|
 | `params.yaml` | every setting; read by the code |
 | `src/mp226/` | the package: config, data loading, data checks, clean, ... |
+| `app/` | FastAPI service (`POST /predict`, `GET /health`) |
 | `data/raw/` | raw data (`.dvc` pointers for train and later) |
-| `tests/` | pytest tests |
+| `tests/` | pytest unit, behavioral, and API tests |
 | `reports/findings.yaml` | the filled-in form |
 | `mlflow.db` | MLflow experiment tracking SQLite database |
 | `models/` | champion model artifact (`model.joblib`) |
+| `Dockerfile` | container build configuration (`python:3.12-slim`) |
+| `k8s/` | Kubernetes deployment (`mp226-api`) and service (`mp226-svc`) manifests |
+| `.github/workflows/` | GitHub Actions CI workflow |
 
 ## Status
 
-Phase 2: Cleaning module, MLflow tracking, pipeline development, and unit testing.
+Phase 3 complete: FastAPI prediction service, Docker containerization, Kubernetes manifests, and GitHub Actions CI.
