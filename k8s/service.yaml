@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mp226-svc
+spec:
+  type: ClusterIP
+  selector:
+    app: mp226-api
+  ports:
+  - port: 80
+    targetPort: 8000
+    protocol: TCP
