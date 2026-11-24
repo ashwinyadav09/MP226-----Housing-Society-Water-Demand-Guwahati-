@@ -1,0 +1,7 @@
+feature,psi_quantile,bins_quantile,psi_equal_width,bins_equal_width
+flats_occupied,0.0357,10,0.0364,10
+temp_c,0.0309,10,0.0332,10
+garden_area_m2,0.0183,10,0.0252,10
+tank_level_morning_pct,0.0413,10,0.061,10
+leak_complaints,0.0468,10,0.0329,10
+supply_hours,3.3079,10,3.3072,10

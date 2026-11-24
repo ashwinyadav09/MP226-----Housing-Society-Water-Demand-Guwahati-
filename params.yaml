@@ -63,6 +63,7 @@ seed: 42
 
 drift:
   bins: 10
+  binning: quantile  # "quantile" or "equal_width"
 
 retrain:
   later_train_fraction: 0.7      # first 70% of later.csv (by date) goes into v2

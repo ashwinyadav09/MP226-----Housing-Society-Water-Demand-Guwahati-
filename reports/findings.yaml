@@ -36,18 +36,18 @@ tracking:
   champion_version: 1
 monitoring:
   psi:
-    flats_occupied: null
-    temp_c: null
-    garden_area_m2: null
-    tank_level_morning_pct: null
-    leak_complaints: null
-    supply_hours: null
-  most_drifted_feature: null
+    flats_occupied: 0.0357
+    temp_c: 0.0309
+    garden_area_m2: 0.0183
+    tank_level_morning_pct: 0.0413
+    leak_complaints: 0.0468
+    supply_hours: 3.3079
+  most_drifted_feature: supply_hours
   mae_by_group:
-    Tower A: null
-    Tower B: null
-    Tower C: null
-  worst_served_group: null
+    Tower A: 14072.2
+    Tower B: 2699.6
+    Tower C: 2497.35
+  worst_served_group: Tower A
   mae_v1_on_check: null
   mae_v2_on_check: null
   decision: null
