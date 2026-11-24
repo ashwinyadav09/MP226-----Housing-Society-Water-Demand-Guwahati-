@@ -15,9 +15,11 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
+from .config import load_params
+
 
 def fix_sentinels(
-    df: pd.DataFrame, col: str = "tank_level_morning_pct", sentinel: float = 999.0
+    df: pd.DataFrame, col: str, sentinel: float
 ) -> pd.DataFrame:
     """Replace placeholder sentinel values with NaN."""
     out = df.copy()
@@ -28,10 +30,10 @@ def fix_sentinels(
 
 def fix_stuck_sensor(
     df: pd.DataFrame,
-    col: str = "flats_occupied",
-    start_date: str = "2026-04-23",
-    end_date: str = "2026-05-11",
-    stuck_value: float = 184.0,
+    col: str,
+    start_date: str,
+    end_date: str,
+    stuck_value: float,
 ) -> pd.DataFrame:
     """Blank stuck sensor readings inside the specific failure window only.
 
@@ -50,10 +52,10 @@ def fix_stuck_sensor(
 
 def fix_unit_mixup(
     df: pd.DataFrame,
-    col: str = "garden_area_m2",
-    group_col: str = "tower",
-    group_val: str = "Tower A",
-    factor: float = 10.764,
+    col: str,
+    group_col: str,
+    group_val: str,
+    factor: float,
 ) -> pd.DataFrame:
     """Convert Tower A garden area from square feet to square metres."""
     out = df.copy()
@@ -91,12 +93,44 @@ def fix_spellings(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def clean_train_data(df: pd.DataFrame) -> pd.DataFrame:
-    """Apply the full sequence of data cleaning operations to training data."""
+    """Apply the full sequence of data cleaning operations to training data.
+
+    Constants are loaded directly from params.yaml.
+    """
+    params = load_params()
+    clean_cfg = params.get("clean", {})
+
     cleaned = df.copy()
     cleaned = fix_spellings(cleaned)
     cleaned = drop_duplicates_custom(cleaned)
     cleaned = fix_target_typos(cleaned)
-    cleaned = fix_unit_mixup(cleaned)
-    cleaned = fix_sentinels(cleaned)
-    cleaned = fix_stuck_sensor(cleaned)
+
+    if "unit_mixup" in clean_cfg:
+        u = clean_cfg["unit_mixup"]
+        cleaned = fix_unit_mixup(
+            cleaned,
+            col=u["column"],
+            group_col=u["group_col"],
+            group_val=u["group_value"],
+            factor=float(u["factor"]),
+        )
+
+    if "sentinel" in clean_cfg:
+        s = clean_cfg["sentinel"]
+        cleaned = fix_sentinels(
+            cleaned,
+            col=s["column"],
+            sentinel=float(s["value"]),
+        )
+
+    if "stuck_sensor" in clean_cfg:
+        st = clean_cfg["stuck_sensor"]
+        cleaned = fix_stuck_sensor(
+            cleaned,
+            col=st["column"],
+            start_date=st["start_date"],
+            end_date=st["end_date"],
+            stuck_value=float(st["stuck_value"]),
+        )
+
     return cleaned

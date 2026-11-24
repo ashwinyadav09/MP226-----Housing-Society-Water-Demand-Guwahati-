@@ -84,36 +84,50 @@ def train_and_track() -> Dict[str, Any]:
 
     X_train, X_val, y_train, y_val, data_sha = get_data_splits()
 
+    models_cfg = params.get("train", {}).get("models", {})
+    ridge_cfg = models_cfg.get("ridge", {})
+    rf_cfg = models_cfg.get("random_forest", {})
+    gb_cfg = models_cfg.get("gradient_boosting", {})
+
+    ridge_alpha = float(ridge_cfg.get("alpha", 10.0))
+    rf_n_est = int(rf_cfg.get("n_estimators", 100))
+    rf_depth = int(rf_cfg.get("max_depth", 10))
+    rf_seed = int(rf_cfg.get("random_state", 42))
+    gb_n_est = int(gb_cfg.get("n_estimators", 150))
+    gb_lr = float(gb_cfg.get("learning_rate", 0.05))
+    gb_depth = int(gb_cfg.get("max_depth", 4))
+    gb_seed = int(gb_cfg.get("random_state", 42))
+
     candidates = [
         {
             "name": "Ridge_Regression",
             "model_type": "Ridge",
-            "params": {"alpha": 10.0, "scale_numeric": True},
-            "pipeline": build_pipeline(Ridge(alpha=10.0), scale_numeric=True),
+            "params": {"alpha": ridge_alpha, "scale_numeric": True},
+            "pipeline": build_pipeline(Ridge(alpha=ridge_alpha), scale_numeric=True),
         },
         {
             "name": "Random_Forest",
             "model_type": "RandomForestRegressor",
-            "params": {"n_estimators": 100, "max_depth": 10, "random_state": 42},
+            "params": {"n_estimators": rf_n_est, "max_depth": rf_depth, "random_state": rf_seed},
             "pipeline": build_pipeline(
-                RandomForestRegressor(n_estimators=100, max_depth=10, random_state=42)
+                RandomForestRegressor(n_estimators=rf_n_est, max_depth=rf_depth, random_state=rf_seed)
             ),
         },
         {
             "name": "Gradient_Boosting",
             "model_type": "GradientBoostingRegressor",
             "params": {
-                "n_estimators": 150,
-                "learning_rate": 0.05,
-                "max_depth": 4,
-                "random_state": 42,
+                "n_estimators": gb_n_est,
+                "learning_rate": gb_lr,
+                "max_depth": gb_depth,
+                "random_state": gb_seed,
             },
             "pipeline": build_pipeline(
                 GradientBoostingRegressor(
-                    n_estimators=150,
-                    learning_rate=0.05,
-                    max_depth=4,
-                    random_state=42,
+                    n_estimators=gb_n_est,
+                    learning_rate=gb_lr,
+                    max_depth=gb_depth,
+                    random_state=gb_seed,
                 )
             ),
         },
