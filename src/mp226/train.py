@@ -67,6 +67,19 @@ def train_and_track() -> Dict[str, Any]:
     reg_model_name = params["mlflow"]["registered_model_name"]
 
     mlflow.set_tracking_uri(tracking_uri)
+    client = MlflowClient()
+    try:
+        reg_model = client.get_registered_model(reg_model_name)
+        if reg_model and reg_model.latest_versions:
+            print(
+                f"Registered model '{reg_model_name}' already has version(s): "
+                f"{[v.version for v in reg_model.latest_versions]}. "
+                "Exiting without touching the registry, models/model.joblib, or reports/findings.yaml."
+            )
+            return {"already_registered": True}
+    except Exception:
+        pass
+
     mlflow.set_experiment(exp_name)
 
     X_train, X_val, y_train, y_val, data_sha = get_data_splits()
