@@ -1,5 +1,8 @@
 """Data cleaning module for MP226.
 
+NOTE: The cleaning functions in this module are strictly for train.csv only.
+later.csv and holdout_features.csv arrive clean from production and are used as given.
+
 Implements all data-cleaning decisions identified in Phase 1:
 - Sentinels in tank_level_morning_pct (999) replaced with NaN
 - Stuck sensor in flats_occupied during 2026-04-23 to 2026-05-11 replaced with NaN
@@ -92,6 +95,7 @@ def fix_spellings(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+# NOTE: The cleaning function is for train.csv only; later.csv and holdout_features.csv are used as given.
 def clean_train_data(df: pd.DataFrame) -> pd.DataFrame:
     """Apply the full sequence of data cleaning operations to training data.
 

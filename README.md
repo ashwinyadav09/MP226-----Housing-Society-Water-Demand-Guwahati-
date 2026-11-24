@@ -28,6 +28,8 @@ pip install -e .
 
 ## Data Cleaning Decisions
 
+> **Important**: The cleaning function (`clean_train_data` in `src/mp226/clean.py`) is for `train.csv` only. Incoming datasets (`later.csv` and `holdout_features.csv`) arrive clean and are used as given.
+
 All cleaning transformations are implemented in `src/mp226/clean.py` based on empirical analysis of `data/raw/train.csv`:
 
 1. **Spelling Variants**:
