@@ -1,24 +1,17 @@
-# MP226 findings --- fill in every value, keep every key.
-# The marking tool reads this file. Write null only where the comment says so.
-# Use the exact column names and group values from your data files.
-
-group_id: "G226"          # your group id, e.g. "G042"
-problem_id: "MP226"
-
+group_id: G226
+problem_id: MP226
 data_issues:
-  # For each of the 7 kinds: present: true or false.
-  # If present is false, leave the other values as null.
   leaking_column:
     present: true
-    column: "meter_litres_next_morning"
+    column: meter_litres_next_morning
   unit_mixup:
     present: true
-    column: "garden_area_m2"
-    group_value: "Tower A"
+    column: garden_area_m2
+    group_value: Tower A
     factor: 10.764
   sentinel_value:
     present: true
-    column: "tank_level_morning_pct"
+    column: tank_level_morning_pct
     value: 999
     count: 61
   duplicate_rows:
@@ -26,9 +19,9 @@ data_issues:
     count: null
   stuck_sensor:
     present: true
-    column: "flats_occupied"
-    start_date: "2026-04-23"
-    end_date: "2026-05-11"
+    column: flats_occupied
+    start_date: '2026-04-23'
+    end_date: '2026-05-11'
   target_typos:
     present: false
     count: null
@@ -36,15 +29,13 @@ data_issues:
     present: false
     column: null
     true_levels: null
-
 tracking:
-  experiment_name: null
-  best_run_id: null        # the MLflow run id of your v1 model
-  registered_model_name: null
-  champion_version: null
-
+  experiment_name: mp226-water-demand
+  best_run_id: 0f951cbcbdd74e00b7f6834ab3f50006
+  registered_model_name: mp226-water-demand
+  champion_version: 1
 monitoring:
-  psi:                     # cleaned train.csv vs later.csv, 10 bins
+  psi:
     flats_occupied: null
     temp_c: null
     garden_area_m2: null
@@ -52,11 +43,11 @@ monitoring:
     leak_complaints: null
     supply_hours: null
   most_drifted_feature: null
-  mae_by_group:            # v1 on later.csv, per value of tower
-    'Tower A': null
-    'Tower B': null
-    'Tower C': null
+  mae_by_group:
+    Tower A: null
+    Tower B: null
+    Tower C: null
   worst_served_group: null
-  mae_v1_on_check: null    # v1 on the last 30% of later.csv (by date)
-  mae_v2_on_check: null    # v2 on the same rows
-  decision: null           # promote or keep
+  mae_v1_on_check: null
+  mae_v2_on_check: null
+  decision: null
