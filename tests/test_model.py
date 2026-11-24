@@ -3,16 +3,19 @@
 All tests run against synthetic data without reading any CSV files from disk.
 """
 
+import joblib
 import numpy as np
 import pandas as pd
 import pytest
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import Ridge
+
+from mp226.config import ROOT
 from mp226.model import build_pipeline
 
 
 @pytest.fixture
 def trained_pipeline():
-    """Train a small pipeline on deterministic synthetic data."""
+    """Train a Ridge pipeline (champion model type) on deterministic synthetic data."""
     X = pd.DataFrame([
         {
             "flats_occupied": 100,
@@ -48,7 +51,7 @@ def trained_pipeline():
     # Target strongly correlates with flats and temp
     y = np.array([12000.0, 24000.0, 36000.0])
 
-    pipe = build_pipeline(regressor=RandomForestRegressor(n_estimators=30, random_state=42))
+    pipe = build_pipeline(regressor=Ridge(alpha=10.0), scale_numeric=True)
     pipe.fit(X, y)
     return pipe
 
@@ -91,3 +94,16 @@ def test_unseen_category_handled_gracefully(trained_pipeline, sample_predict_pay
     unseen_payload = dict(sample_predict_payload, supply_source="river", tower="Tower D")
     pred = trained_pipeline.predict(pd.DataFrame([unseen_payload]))[0]
     assert pred > 0
+
+
+def test_load_champion_model_and_predict(sample_predict_payload):
+    """Load models/model.joblib directly and verify it predicts on request payload."""
+    model_path = ROOT / "models" / "model.joblib"
+    assert model_path.exists(), "models/model.joblib artifact must exist"
+
+    model = joblib.load(model_path)
+    df = pd.DataFrame([sample_predict_payload])
+    pred = model.predict(df)[0]
+
+    assert pred > 0, "Predicted water consumption must be positive"
+    assert not np.isnan(pred), "Prediction must be a valid number"
