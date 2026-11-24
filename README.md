@@ -47,22 +47,33 @@ All cleaning transformations are implemented in `src/mp226/clean.py` based on em
 7. **Imputation Strategy**:
    - Missing values created during cleaning (`NaN`s in `flats_occupied` and `tank_level_morning_pct`) are imputed inside the scikit-learn training/serving Pipeline using median statistics to ensure zero data leakage between splits and exact parity between training and online inference.
 
+## Monitoring & Population Stability Index (PSI)
+
+Drift monitoring between cleaned `train.csv` and production `later.csv` is implemented in `src/mp226/drift.py`.
+- **Binning Strategy**: Configured via `drift.binning` in `params.yaml` (`quantile` or `equal_width`, default: `quantile`).
+- **Comprehensive Comparison**: Both binning algorithms were evaluated side by side and saved to `reports/psi_both_methods.csv`.
+- **Drift Findings**: Under both methods, `supply_hours` experienced severe drift ($\text{PSI} \approx 3.31$), while all other numeric features remained stable ($\text{PSI} < 0.07$).
+- **Subgroup Disparity**: The initial v1 champion model exhibited severe error on Tower A ($\text{MAE} \approx 14,072\text{ litres}$) compared to Towers B and C ($\text{MAE} \approx 2,500\text{--}2,700\text{ litres}$).
+- **Retraining & Promotion**: Model v2 retrained on clean `train.csv` plus the first 70% of `later.csv` reduced MAE on the check set from $7,679.11$ to $5,776.65$ litres ($24.77\%$ improvement), surpassing the $15\%$ threshold and earning promotion to `@champion`.
+
 ## Layout
 
 | Path | What it holds |
 |---|---|
 | `params.yaml` | every setting; read by the code |
-| `src/mp226/` | the package: config, data loading, data checks, clean, ... |
+| `src/mp226/` | the package: config, data loading, data checks, clean, drift, retrain |
 | `app/` | FastAPI service (`POST /predict`, `GET /health`) |
 | `data/raw/` | raw data (`.dvc` pointers for train and later) |
-| `tests/` | pytest unit, behavioral, and API tests |
-| `reports/findings.yaml` | the filled-in form |
-| `mlflow.db` | MLflow experiment tracking SQLite database |
-| `models/` | champion model artifact (`model.joblib`) |
+| `tests/` | pytest unit, behavioral, API, and drift tests |
+| `reports/findings.yaml` | the completed evaluation form |
+| `reports/psi_both_methods.csv` | PSI comparison across quantile and equal-width methods |
+| `predictions/holdout_predictions.csv` | champion model predictions on holdout_features.csv |
+| `mlflow.db` | MLflow experiment tracking SQLite database (versions 1 & 2) |
+| `models/model.joblib` | serialized champion model artifact |
 | `Dockerfile` | container build configuration (`python:3.12-slim`) |
 | `k8s/` | Kubernetes deployment (`mp226-api`) and service (`mp226-svc`) manifests |
 | `.github/workflows/` | GitHub Actions CI workflow |
 
 ## Status
 
-Phase 3 complete: FastAPI prediction service, Docker containerization, Kubernetes manifests, and GitHub Actions CI.
+Complete (Phase 1–4 finished): Data checks, DVC tracking, cleaning module, MLflow tracking with v1 & v2, FastAPI service with JSON logging, Docker container, Kubernetes files, green GitHub Actions CI, PSI drift monitoring, and holdout predictions generated.
