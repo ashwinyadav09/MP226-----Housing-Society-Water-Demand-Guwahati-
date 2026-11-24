@@ -29,6 +29,36 @@ columns:
     - tower
   group: tower
 
+clean:
+  stuck_sensor:
+    column: flats_occupied
+    start_date: "2026-04-23"
+    end_date: "2026-05-11"
+    stuck_value: 184
+  sentinel:
+    column: tank_level_morning_pct
+    value: 999
+  unit_mixup:
+    column: garden_area_m2
+    group_col: tower
+    group_value: "Tower A"
+    factor: 10.764
+
+train:
+  val_split_fraction: 0.2
+  models:
+    ridge:
+      alpha: 10.0
+    random_forest:
+      n_estimators: 100
+      max_depth: 10
+      random_state: 42
+    gradient_boosting:
+      n_estimators: 150
+      learning_rate: 0.05
+      max_depth: 4
+      random_state: 42
+
 seed: 42
 
 drift:
