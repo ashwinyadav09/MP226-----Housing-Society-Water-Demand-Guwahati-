@@ -17,7 +17,13 @@ def test_fix_sentinels(sample_raw_df):
 
 
 def test_fix_unit_mixup(sample_raw_df):
-    cleaned = fix_unit_mixup(sample_raw_df, col="garden_area_m2", factor=10.764)
+    cleaned = fix_unit_mixup(
+        sample_raw_df,
+        col="garden_area_m2",
+        group_col="tower",
+        group_val="Tower A",
+        factor=10.764,
+    )
     # 10764 / 10.764 = 1000.0
     assert np.isclose(cleaned.loc[0, "garden_area_m2"], 1000.0)
     # Tower B value untouched
@@ -25,7 +31,13 @@ def test_fix_unit_mixup(sample_raw_df):
 
 
 def test_fix_stuck_sensor_window(sample_raw_df):
-    cleaned = fix_stuck_sensor(sample_raw_df, col="flats_occupied", stuck_value=184)
+    cleaned = fix_stuck_sensor(
+        sample_raw_df,
+        col="flats_occupied",
+        start_date="2026-04-23",
+        end_date="2026-05-11",
+        stuck_value=184,
+    )
     # Row 0 is 2026-04-25 (inside window) -> NaN
     assert pd.isna(cleaned.loc[0, "flats_occupied"])
     # Row 1 is 2026-01-15 (outside window) -> genuine 184 preserved
