@@ -59,3 +59,57 @@ def test_should_promote_worse_v2():
     """When v2 performs worse or equal to v1, promotion must be rejected."""
     assert should_promote(100.0, 105.0, threshold=0.15) is False
     assert should_promote(100.0, 100.0, threshold=0.15) is False
+
+
+def test_weighted_fit_moves_predictions_toward_later_regime():
+    """Synthetic test verifying sample weights shift regressor predictions toward the later regime.
+
+    Constructs two regimes in memory without reading CSV files:
+      - Regime 1 ('train'): 100 observations with target centered around 1000.
+      - Regime 2 ('later'): 20 observations with target centered around 5000.
+    With uniform weights (1.0 each), the fit is dominated by the 100 observations of Regime 1.
+    With sample weighting (e.g. weight 40 on Regime 2), the prediction on a test point shifts
+    strongly toward the Regime 2 target value (5000).
+    """
+    import pandas as pd
+    from sklearn.linear_model import Ridge
+    from mp226.model import build_pipeline
+
+    n_train = 100
+    n_later = 20
+
+    # Synthetic features matching schema
+    cols = {
+        "flats_occupied": np.full(n_train + n_later, 100.0),
+        "temp_c": np.full(n_train + n_later, 28.0),
+        "garden_area_m2": np.full(n_train + n_later, 500.0),
+        "tank_level_morning_pct": np.full(n_train + n_later, 75.0),
+        "leak_complaints": np.full(n_train + n_later, 2.0),
+        "supply_hours": np.full(n_train + n_later, 8.0),
+        "supply_source": ["Borewell"] * (n_train + n_later),
+        "tower": ["Tower A"] * (n_train + n_later),
+    }
+    df = pd.DataFrame(cols)
+    y = np.concatenate([np.full(n_train, 1000.0), np.full(n_later, 5000.0)])
+
+    # Test point with identical feature values
+    test_df = pd.DataFrame({k: [v[0]] for k, v in cols.items()})
+
+    # Unweighted fit
+    pipe_unweighted = build_pipeline(Ridge(alpha=1.0), scale_numeric=True)
+    pipe_unweighted.fit(df, y, regressor__sample_weight=np.ones(len(df)))
+    pred_unweighted = pipe_unweighted.predict(test_df)[0]
+
+    # Weighted fit (weight 40 for later regime)
+    weights = np.concatenate([np.ones(n_train), np.full(n_later, 40.0)])
+    pipe_weighted = build_pipeline(Ridge(alpha=1.0), scale_numeric=True)
+    pipe_weighted.fit(df, y, regressor__sample_weight=weights)
+    pred_weighted = pipe_weighted.predict(test_df)[0]
+
+    # The weighted prediction must shift substantially towards Regime 2's target (5000)
+    assert pred_weighted > pred_unweighted, (
+        f"Expected weighted prediction ({pred_weighted}) > unweighted ({pred_unweighted})"
+    )
+    assert abs(pred_weighted - 5000.0) < abs(pred_unweighted - 5000.0), (
+        "Weighted prediction must be closer to the later regime target (5000) than unweighted"
+    )

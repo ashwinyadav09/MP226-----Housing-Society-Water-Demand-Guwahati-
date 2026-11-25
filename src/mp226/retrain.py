@@ -45,6 +45,7 @@ def retrain_and_evaluate() -> Dict[str, Any]:
     target = cfg["columns"]["target"]
     later_train_frac = cfg.get("retrain", {}).get("later_train_fraction", 0.7)
     threshold = cfg.get("retrain", {}).get("promotion_improvement", 0.15)
+    later_weight_grid = cfg.get("retrain", {}).get("later_weight_grid", [1, 5, 10, 20, 40])
     tracking_uri = cfg["mlflow"]["tracking_uri"]
     exp_name = cfg["mlflow"]["experiment_name"]
     reg_model_name = cfg["mlflow"]["registered_model_name"]
@@ -76,31 +77,71 @@ def retrain_and_evaluate() -> Dict[str, Any]:
     later_raw = load_raw("later").sort_values("date").reset_index(drop=True)
 
     n_later_train = int(len(later_raw) * later_train_frac)
-    later_train = later_raw.iloc[:n_later_train]
-    later_check = later_raw.iloc[n_later_train:]
+    later_train = later_raw.iloc[:n_later_train].reset_index(drop=True)
+    later_check = later_raw.iloc[n_later_train:].reset_index(drop=True)
 
     print(f"Retraining split: clean train ({len(train_clean)} rows) + later first 70% ({len(later_train)} rows)")
     print(f"Check evaluation set: later last 30% ({len(later_check)} rows)")
 
-    combined_train = pd.concat([train_clean, later_train], ignore_index=True)
-    X_train_v2 = combined_train[features]
-    y_train_v2 = combined_train[target]
+    # 3. Inner time-ordered split inside first 70% of later
+    # Fit on clean train + first 2/3 of later_train, validate on remaining 1/3
+    n_inner_fit = len(later_train) * 2 // 3
+    inner_fit_later = later_train.iloc[:n_inner_fit]
+    inner_val_later = later_train.iloc[n_inner_fit:]
+    print(f"Inner split: {len(inner_fit_later)} fit rows, {len(inner_val_later)} validation rows")
 
-    X_check = later_check[features]
-    y_check = later_check[target]
+    train_inner = pd.concat([train_clean, inner_fit_later], ignore_index=True)
+    X_inner_fit = train_inner[features]
+    y_inner_fit = train_inner[target]
+    X_inner_val = inner_val_later[features]
+    y_inner_val = inner_val_later[target]
 
-    # 3. Load v1 champion model for baseline check
+    best_w = None
+    best_inner_mae = float("inf")
+    inner_maes: Dict[int, float] = {}
+
+    print("Evaluating sample weight grid on inner validation split:")
+    for w in later_weight_grid:
+        w_val = float(w)
+        weights_inner = np.concatenate([
+            np.ones(len(train_clean), dtype=float),
+            np.full(len(inner_fit_later), w_val, dtype=float),
+        ])
+        pipe_candidate = build_pipeline(Ridge(alpha=ridge_alpha), scale_numeric=True)
+        pipe_candidate.fit(X_inner_fit, y_inner_fit, regressor__sample_weight=weights_inner)
+        preds_inner = pipe_candidate.predict(X_inner_val)
+        mae_inner = float(mean_absolute_error(y_inner_val, preds_inner))
+        inner_maes[w] = round(mae_inner, 2)
+        print(f"  Weight {w:2d} -> Inner validation MAE: {mae_inner:.2f} litres")
+        if mae_inner < best_inner_mae:
+            best_inner_mae = mae_inner
+            best_w = w
+
+    print(f"Chosen weight: {best_w} with inner MAE: {best_inner_mae:.2f} litres")
+
+    # 4. Load v1 champion model for baseline check
     v1_uri = f"models:/{reg_model_name}/1"
     model_v1 = mlflow.sklearn.load_model(v1_uri)
+    X_check = later_check[features]
+    y_check = later_check[target]
     v1_preds = model_v1.predict(X_check)
     mae_v1 = float(mean_absolute_error(y_check, v1_preds))
 
-    # 4. Fit v2 pipeline (same architecture as v1)
+    # 5. Refit on clean train + all first-70% rows
+    # Clean-train rows receive weight 1, later rows receive chosen weight
+    combined_train = pd.concat([train_clean, later_train], ignore_index=True)
+    X_train_v2 = combined_train[features]
+    y_train_v2 = combined_train[target]
+    final_weights = np.concatenate([
+        np.ones(len(train_clean), dtype=float),
+        np.full(len(later_train), float(best_w), dtype=float),
+    ])
+
     pipe_v2 = build_pipeline(Ridge(alpha=ridge_alpha), scale_numeric=True)
 
     with mlflow.start_run(run_name="Retrain_v2_with_later") as run:
         v2_run_id = run.info.run_id
-        pipe_v2.fit(X_train_v2, y_train_v2)
+        pipe_v2.fit(X_train_v2, y_train_v2, regressor__sample_weight=final_weights)
 
         v2_preds = pipe_v2.predict(X_check)
         mae_v2 = float(mean_absolute_error(y_check, v2_preds))
@@ -110,10 +151,16 @@ def retrain_and_evaluate() -> Dict[str, Any]:
         mlflow.log_param("data_sha256", data_sha)
         mlflow.log_param("model_type", "Ridge")
         mlflow.log_param("alpha", ridge_alpha)
+        mlflow.log_param("chosen_later_weight", best_w)
+        mlflow.log_param("later_weight_grid", str(later_weight_grid))
         mlflow.log_param("rows_used", len(combined_train))
         mlflow.log_param("train_rows_clean", len(train_clean))
         mlflow.log_param("later_train_rows", len(later_train))
         mlflow.log_param("check_rows", len(later_check))
+
+        for w, m_val in inner_maes.items():
+            mlflow.log_metric(f"inner_mae_weight_{w}", m_val)
+        mlflow.log_metric("inner_mae_best", round(best_inner_mae, 2))
 
         mlflow.log_metric("mae_last30", mae_v2)
         mlflow.log_metric("mae", mae_v2)

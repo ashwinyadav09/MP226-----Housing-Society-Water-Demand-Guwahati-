@@ -49,5 +49,5 @@ monitoring:
     Tower C: 2497.35
   worst_served_group: Tower A
   mae_v1_on_check: 7679.11
-  mae_v2_on_check: 5776.65
+  mae_v2_on_check: 2416.1
   decision: promote

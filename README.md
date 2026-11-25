@@ -47,14 +47,23 @@ All cleaning transformations are implemented in `src/mp226/clean.py` based on em
 7. **Imputation Strategy**:
    - Missing values created during cleaning (`NaN`s in `flats_occupied` and `tank_level_morning_pct`) are imputed inside the scikit-learn training/serving Pipeline using median statistics to ensure zero data leakage between splits and exact parity between training and online inference.
 
-## Monitoring & Population Stability Index (PSI)
+## Monitoring, Drift & Regime-Shift Weighting
 
-Drift monitoring between cleaned `train.csv` and production `later.csv` is implemented in `src/mp226/drift.py`.
+Drift monitoring between cleaned `train.csv` and production `later.csv` is implemented in `src/mp226/drift.py` and retraining in `src/mp226/retrain.py`.
 - **Binning Strategy**: Configured via `drift.binning` in `params.yaml` (`quantile` or `equal_width`, default: `quantile`).
 - **Comprehensive Comparison**: Both binning algorithms were evaluated side by side and saved to `reports/psi_both_methods.csv`.
 - **Drift Findings**: Under both methods, `supply_hours` experienced severe drift ($\text{PSI} \approx 3.31$), while all other numeric features remained stable ($\text{PSI} < 0.07$).
-- **Subgroup Disparity**: The initial v1 champion model exhibited severe error on Tower A ($\text{MAE} \approx 14,072\text{ litres}$) compared to Towers B and C ($\text{MAE} \approx 2,500\text{--}2,700\text{ litres}$).
-- **Retraining & Promotion**: Model v2 retrained on clean `train.csv` plus the first 70% of `later.csv` reduced MAE on the check set from $7,679.11$ to $5,776.65$ litres ($24.77\%$ improvement), surpassing the $15\%$ threshold and earning promotion to `@champion`.
+- **Data Evidence for Regime Shift**:
+  - `supply_hours` mean moved from $6.48$ (~$6.5$) hours in `train.csv` to $10.82$ (~$10.8$) hours in `later.csv`.
+  - Society-wide per-flat water consumption (`litres_per_day / flats_occupied`) rose from $216.5$ to $327.9$ litres ($+51.5\%$).
+  - The surge in consumption was most pronounced in **Tower A**, jumping $+80.7\%$ (from $235.1$ to $425.0$ litres per flat), compared to $+35.5\%$ in Tower B and $+38.0\%$ in Tower C.
+- **Subgroup Disparity in v1**: Because v1 learned on historical train data (including the uncorrected unit mixup on Tower A), it suffered severe error on Tower A ($\text{MAE} \approx 14,072\text{ litres}$) compared to Towers B and C ($\text{MAE} \approx 2,500\text{--}2,700\text{ litres}$).
+- **Inner-Split Weight Optimization**:
+  - To adapt to the new higher-consumption operational regime without overfitting or data leakage, `retrain.py` tunes sample weighting using an **inner time-ordered split** on the first 70% of `later.csv` (fit on clean train + first 2/3 of later rows, validate on the remaining 1/3).
+  - Across the grid `[1, 5, 10, 20, 40]`, sample weight $40$ achieved the lowest inner validation MAE ($1,946.65$ litres, down from $4,396.08$ litres for weight 1).
+- **Retraining & Promotion**:
+  - Refitting on clean train (weight 1) plus all first-70% rows (weight 40) and evaluating on the independent last 30% check set dropped MAE from $7,679.11$ (v1) down to $2,416.10$ litres ($68.54\%$ relative improvement).
+  - This substantially surpassed the $15\%$ threshold, earning model v2 promotion to `@champion`.
 
 ## Layout
 

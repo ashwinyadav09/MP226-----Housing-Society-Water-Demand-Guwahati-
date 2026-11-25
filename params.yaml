@@ -68,6 +68,7 @@ drift:
 retrain:
   later_train_fraction: 0.7      # first 70% of later.csv (by date) goes into v2
   promotion_improvement: 0.15    # promote v2 only if its MAE is >= 15% lower
+  later_weight_grid: [1, 5, 10, 20, 40]
 
 mlflow:
   tracking_uri: sqlite:///mlflow.db
